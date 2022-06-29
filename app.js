@@ -1,68 +1,52 @@
-const express = require("express");
-const mongoose = require('mongoose');
-const ejs =require('ejs');
-const path = require("path");
-const post = require('./models/newPost');
+const express = require('express');
+const mongoose = require('mongoose')
+const methodOverride = require('method-override')
+
+const ejs = require('ejs');
+const path = require('path');
+const postController = require('./controllers/postController')
+const pageController = require('./controllers/pageController')
+
+
+//app değişkenine express fonksiyonunu atama
 const app = express();
 
-// connect  DB
-
-mongoose.connect('mongodb://localhost/cleanblog-test-db');
-//TEMPLATE ENGİNE
-app.set("view engine", "ejs");
-
-// MIDDLEWARES
-app.use(express.static('public')); // Static dosyaları koyacağımız klasörü seçtik
-app.use(express.urlencoded({ extended: true })); // Body parser okuyoruz
-app.use(express.json()); // Body parser dönüştürüyoruz
-// ROUTES
-app.get('/posts/:id',async (req, res) => {   
-  const addPost = await post.findById(req.params.id)
-    res.render('post',{
-      addPost
-    });
-});
+// Connect DB
+mongoose.connect('mongodb://localhost/cleanblog-test-db', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
 
 
+// TEMPLATE ENGINE
+app.set('view engine', 'ejs')
 
 
-app.get("/", async (req, res) => {
-  const addPost = await post.find({})
-  // dosyayo içeri çektik
-  // express static middleware kullandık
-  //res.sendFile(path.resolve(__dirname, "tmp/index.html"));
-  res.render('index',{
-    addPost
-  })
- 
-});
+//MIDDLEWARES
+app.use(express.static('public'))
+app.use(express.urlencoded({ extended: true })) //url datasını okumamızı sağlar
+app.use(express.json()) //datayı json formatına dönüştürmeyi sağlar
+app.use(methodOverride('_method')) //Put(güncelleme) işlemini Post olarak simüle ettik
+app.use(
+    methodOverride('_method', {
+        methods: ['POST', 'GET'], //delete yerine post olarak simüle ettik ve get isteği gönderdik.
+    })
+)
 
 
-app.get("/about", (req, res) => {
-  res.render('about')
-});
-app.get("/post", (req, res) => {
-  res.render('post')
-});
-app.get("/contact", (req, res) => {
-  res.render('contact')
-});
-app.get("/addNewPost", (req, res) => {
-  res.render('addNewPost')
-});
-app.post('/photos', async (req, res) => { // async - await yapısı kullanacğız.
-  await post.create(req.body)// body bilgisini Photo modeli sayesinde veritabanında dökümana dönüştürüyoruz.
-  res.redirect('/')
-});
+//Routers
+app.get('/', postController.getAllPost) //all post list
+app.get('/posts/:id', postController.getPost) //post list
+app.post('/posts', postController.createPost) //create post
+app.put('/posts/:id', postController.updatePost) //update post
+app.delete('/posts/:id', postController.deletePost) //delete post
 
-app.get('/', async (req, res) => {
-  const addPost = await posts.find({})
-  res.render('index', {
-    addPost
-  })});
+app.get('/about', pageController.getAboutPage)
+app.get('/add_post', pageController.getAddPage)
+app.get('/post/edit/:id', pageController.getEditPage)
 
 
 const port = 3000;
 app.listen(port, () => {
-  console.log(`sunucu ${port} portunda başlatıldı`);
+    console.log(`Sunucu ${port} Portunda Başlatıldı...`);
 });
